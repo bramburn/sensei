@@ -1330,7 +1330,12 @@ class Sensei_Course {
 
                     } // End If Statement
 
-                    if ( false == $course_purchased ) {
+	                /**
+	                 * documented in class-sensei-course.php the_course_action_buttons function
+	                 */
+	                $show_delete_course_button = apply_filters( 'sensei_show_delete_course_button', false );
+
+                    if ( false == $course_purchased && $show_delete_course_button ) {
 
                         $active_html .= '<span><input name="course_complete" type="submit" class="course-delete" value="'
                             .  __( 'Delete Course', 'woothemes-sensei' ) . '"/></span>';
@@ -2063,7 +2068,20 @@ class Sensei_Course {
                         } // End If Statement
                     } // End If Statement
 
-                    if ( ! $course_purchased && ! Sensei_Utils::user_completed_course( $course->ID, get_current_user_id() ) ) {?>
+                    /**
+                     * Hide or show the delete course button.
+                     *
+                     * This button on shows in certain instances, but this filter will hide it in those
+                     * cases. For other instances the button will be hidden.
+                     *
+                     * @since 1.9.0
+                     * @param bool $show_delete_course_button defaults to false
+                     */
+                    $show_delete_course_button = apply_filters( 'sensei_show_delete_course_button', false );
+
+                    if ( ! $course_purchased
+                         && ! Sensei_Utils::user_completed_course( $course->ID, get_current_user_id() )
+                         && $show_delete_course_button ) { ?>
 
                         <span><input name="course_complete" type="submit" class="course-delete" value="<?php echo __( 'Delete Course', 'woothemes-sensei' ); ?>"/></span>
 
@@ -2708,21 +2726,31 @@ class Sensei_Course {
      * @since 1.9.0
      */
     public static function the_course_enrolment_actions(){
+
+	    global $post;
+
+	    if ( 'course' != $post->post_type ) {
+			return;
+	    }
+
         ?>
         <section class="course-meta course-enrolment">
         <?php
         global  $post, $current_user;
         $is_user_taking_course = Sensei_Utils::user_started_course( $post->ID, $current_user->ID );
-        if ( is_user_logged_in() && ! $is_user_taking_course ) {
 
-            // Get the product ID
-            $wc_post_id = absint( get_post_meta( $post->ID, '_course_woocommerce_product', true ) );
+	    if ( is_user_logged_in() && ! $is_user_taking_course ) {
 
-            // Check for woocommerce
-            if ( Sensei_WC::is_woocommerce_active() && ( 0 < intval( $wc_post_id ) ) ) {
-                sensei_wc_add_to_cart($post->ID);
+	        // Check for woocommerce
+	        if ( Sensei_WC::is_woocommerce_active() && Sensei_WC::is_course_purchasable( $post->ID ) ) {
+
+		        // Get the product ID
+                Sensei_WC::the_add_to_cart_button_html($post->ID );
+
             } else {
+
                 sensei_start_course_form($post->ID);
+
             } // End If Statement
 
         } elseif ( is_user_logged_in() ) {
@@ -2754,16 +2782,32 @@ class Sensei_Course {
             <?php }
 
         } else {
-            // Get the product ID
-            $wc_post_id = absint( get_post_meta( $post->ID, '_course_woocommerce_product', true ) );
-            // Check for woocommerce
-            if ( Sensei_WC::is_woocommerce_active() && ( 0 < intval( $wc_post_id ) ) ) {
 
-                sensei_wc_add_to_cart($post->ID);
+            // Check for woocommerce
+		    if ( Sensei_WC::is_woocommerce_active() && Sensei_WC::is_course_purchasable( $post->ID ) ) {
+
+	            $login_link =  '<a href="' . sensei_user_login_url() . '">' . __( 'log in', 'woothemes-sensei' ) . '</a>';
+	            $message = sprintf( __( 'Or %1$s to access your purchased courses', 'woothemes-sensei' ), $login_link );
+	            Sensei()->notices->add_notice( $message, 'info' ) ;
+	            Sensei_WC::the_add_to_cart_button_html( $post->ID );
 
             } else {
 
                 if( get_option( 'users_can_register') ) {
+
+	                // set the permissions message
+	                $anchor_before = '<a href="' . esc_url( sensei_user_login_url() ) . '" >';
+	                $anchor_after = '</a>';
+	                $notice = sprintf(
+		                __('or log in to view this courses. Click here to %slogin%s.'),
+		                $anchor_before,
+		                $anchor_after
+	                );
+
+	                // register the notice to display
+	                if( Sensei()->settings->get( 'access_permission' ) ){
+		                Sensei()->notices->add_notice( $notice, 'info' ) ;
+	                }
 
 
                     $my_courses_page_id = '';

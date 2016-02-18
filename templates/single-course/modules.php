@@ -89,6 +89,14 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
                                         <?php the_title(); ?>
 
+	                                    <?php
+	                                    $course_id = Sensei()->lesson->get_course_id( get_the_ID() );
+	                                    if ( Sensei_Utils::is_preview_lesson( get_the_ID() ) && ! Sensei_Utils::user_started_course( $course_id, get_current_user_id() )  ) { ?>
+
+	                                        <span class="preview-label">Free Preview</span>
+
+                                        <?php } ?>
+
                                     </a>
 
                                 </li>

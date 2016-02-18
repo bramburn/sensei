@@ -26,10 +26,6 @@ if ( ! defined( 'ABSPATH' ) ){ exit; } // Exit if accessed directly
 	  */
 	 function course_single_lessons() {
 
-		 if ( ! is_singular( 'course' )  ) {
-			 return;
-		 }
-
          // load backwards compatible template name if it exists in the users theme
          $located_template= locate_template( Sensei()->template_url . 'single-course/course-lessons.php' );
          if( $located_template ){
@@ -816,6 +812,12 @@ function sensei_can_user_view_lesson( $lesson_id = '', $user_id = ''  ){
 
     }
 
+	if ( 'quiz'== get_post_type( get_the_ID() ) ){
+
+		$lesson_id = Sensei()->quiz->get_lesson_id( get_the_ID() );
+
+	}
+
     if( empty( $user_id ) ){
 
         $user_id = get_current_user_id();
@@ -1020,7 +1022,6 @@ function the_no_permissions_message( $post_id ){
      * @param $no_permissions_message
      */
     echo apply_filters( 'sensei_the_no_permissions_message', Sensei()->permissions_message['message'] , $post_id );
-
 }
 
 /**
